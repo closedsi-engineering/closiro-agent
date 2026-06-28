@@ -12,8 +12,6 @@ const org = process.env.SNAILER_ORG || 'felixaihub';
 const repo = process.env.SNAILER_REPO || 'snailer-cli';
 const version = 'v' + (process.env.npm_package_version || '0.1.0');
 
-// Map the current Node.js platform and CPU architecture to the
-// matching Rust target triple used in the released binary names.
 function triple() {
   const plat = os.platform();
   const arch = os.arch();
