@@ -38,6 +38,8 @@ This repository contains **two production AI agents**:
 
 Snailer is an **intelligent AI coding agent** that lives in your terminal, understands your codebase, and helps you code faster by:
 
+- 2026.06.28 : Contribute Test
+
 - 🔍 **Understanding Context**: Automatically learns from your project structure and coding patterns
 - 🛠️ **Executing Tasks**: Performs file operations, code refactoring, and git workflows
 - 🧠 **Self-Improving**: Uses ACE (Agentic Context Engineering) to learn from experience
