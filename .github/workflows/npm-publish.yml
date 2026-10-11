@@ -26,7 +26,7 @@ jobs:
           # Strip leading 'v' if present
           PKG_VERSION="${VERSION#v}"
           echo "Setting package.json version to ${PKG_VERSION}"
-          npm version "${PKG_VERSION}" --no-git-tag-version
+          npm version "${PKG_VERSION}" --no-git-tag-version --allow-same-version
           cat package.json
       - run: npm publish --access public
         env:
