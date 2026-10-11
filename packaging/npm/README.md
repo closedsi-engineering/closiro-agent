@@ -64,7 +64,7 @@ CLOSIRO_SKIP_POSTINSTALL=1 npm install -g @closedsi/closiro
 
 Then download the archive for your platform from
 [Releases](https://github.com/closedsi-engineering/closiro-agent/releases), and extract
-the `snailer` binary into the package's `bin/` directory
+the `closiro` binary (`snailer` for releases before v2.38.0) into the package's `bin/` directory
 (`$(npm root -g)/@closedsi/closiro/bin/`).
 
 `CLOSIRO_REPO=owner/name` downloads from a fork or mirror instead. The older
