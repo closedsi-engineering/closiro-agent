@@ -6,10 +6,11 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 
-const exe = os.platform() === 'win32' ? 'snailer.exe' : 'snailer';
-const bin = path.join(__dirname, exe);
+// v2.38.0+ archives contain `closiro`; older ones contain `snailer`.
+const ext = os.platform() === 'win32' ? '.exe' : '';
+const bin = ['closiro', 'snailer'].map((n) => path.join(__dirname, n + ext)).find((p) => fs.existsSync(p));
 
-if (!fs.existsSync(bin)) {
+if (!bin) {
   console.error('[closiro] The native binary is missing. Reinstall with:');
   console.error('[closiro]   npm install -g @closedsi/closiro');
   console.error('[closiro] or download it from https://github.com/closedsi-engineering/closiro-agent/releases');

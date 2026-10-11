@@ -34,11 +34,19 @@ if (!triple) {
   process.exit(1);
 }
 
+// Releases from v2.38.0 ship a `closiro` binary; older ones ship `snailer`.
+function atLeast(v, min) {
+  const a = v.replace(/^v/, '').split('.').map(Number);
+  const b = min.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((a[i] || 0) !== b[i]) return (a[i] || 0) > b[i];
+  return true;
+}
+const name = atLeast(version, '2.38.0') ? 'closiro' : 'snailer';
 const isWin = os.platform() === 'win32';
-const asset = `snailer-${version}-${triple}.${isWin ? 'zip' : 'tar.gz'}`;
+const asset = `${name}-${version}-${triple}.${isWin ? 'zip' : 'tar.gz'}`;
 const base = `https://github.com/${repoSlug}/releases/download/${version}`;
 const url = `${base}/${asset}`;
-const sumsUrl = `${base}/snailer-${version}-checksums.txt`;
+const sumsUrl = `${base}/${name}-${version}-checksums.txt`;
 
 const binDir = path.join(__dirname, '..', 'bin');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'closiro-'));
@@ -72,7 +80,7 @@ try {
       `Expand-Archive -LiteralPath '${archive}' -DestinationPath '${binDir}' -Force`], { stdio: 'inherit' });
   } else {
     execFileSync('tar', ['-xzf', archive, '-C', binDir], { stdio: 'inherit' });
-    fs.chmodSync(path.join(binDir, 'snailer'), 0o755);
+    fs.chmodSync(path.join(binDir, name), 0o755);
   }
   console.log(`[closiro] Installed ${version} (${triple}). Run: closiro --help`);
   console.log(`[closiro] By installing, you agree to the EULA: https://github.com/${repoSlug}/blob/main/EULA.md`);

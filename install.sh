@@ -1,9 +1,9 @@
 #!/bin/sh
-# Snailer installer — POSIX sh, safe for `curl | sh`.
+# Closiro (formerly Snailer) installer — POSIX sh, safe for `curl | sh`.
 #
 # Attribution: the landing page copies this command with SNAILER_WEB_REF (and
 # optionally SNAILER_UTM_* / SNAILER_GCLID) prefixed. Those env vars are
-# inherited by this script AND by the `snailer` process we run at the end —
+# inherited by this script AND by the `closiro` process we run at the end —
 # the CLI persists them to disk on first run, which is what ties an ad click
 # to the installation. This script never parses or stores them itself.
 #
@@ -14,7 +14,7 @@
 
 set -u
 
-REPO="felixaihub/snailer-cli"
+REPO="closedsi-engineering/closiro-agent"
 INGEST_URL="${SNAILER_INGEST_URL:-https://telemetry-ingest-64gv44yx7a-uw.a.run.app}"
 BIN_DIR="${SNAILER_BIN_DIR:-$HOME/.snailer/bin}"
 
@@ -41,7 +41,7 @@ report_failure() { # $1 = step (download|extract|permission|path|unknown)
 }
 fail() { # $1 = step, $2 = message
   report_failure "$1"
-  echo "snailer install failed: $2" >&2
+  echo "closiro install failed: $2" >&2
   exit 1
 }
 
@@ -62,29 +62,38 @@ TAG=$(curl -fsSL --max-time 15 "https://api.github.com/repos/$REPO/releases/late
   | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)
 [ -n "$TAG" ] || fail download "could not resolve latest release"
 
-ASSET="snailer-$TAG-$TARGET.tar.gz"
-URL="https://github.com/$REPO/releases/download/$TAG/$ASSET"
-TMP=$(mktemp -d 2>/dev/null || mktemp -d -t snailer) || fail unknown "mktemp failed"
+TMP=$(mktemp -d 2>/dev/null || mktemp -d -t closiro) || fail unknown "mktemp failed"
 trap 'rm -rf "$TMP"' EXIT
 
-echo "Downloading snailer $TAG ($TARGET)..."
-curl -fSL --max-time 300 -o "$TMP/$ASSET" "$URL" || fail download "download failed: $URL"
+# Releases from v2.38.0 ship a `closiro` binary; older ones ship `snailer`.
+echo "Downloading closiro $TAG ($TARGET)..."
+NAME=closiro
+ASSET="$NAME-$TAG-$TARGET.tar.gz"
+URL="https://github.com/$REPO/releases/download/$TAG/$ASSET"
+if ! curl -fsSL --max-time 300 -o "$TMP/$ASSET" "$URL"; then
+  NAME=snailer
+  ASSET="$NAME-$TAG-$TARGET.tar.gz"
+  URL="https://github.com/$REPO/releases/download/$TAG/$ASSET"
+  curl -fSL --max-time 300 -o "$TMP/$ASSET" "$URL" || fail download "download failed: $URL"
+fi
 
 # ── extract ─────────────────────────────────────────────────────────────────
 tar -xzf "$TMP/$ASSET" -C "$TMP" || fail extract "archive extraction failed"
-[ -f "$TMP/snailer" ] || fail extract "binary missing from archive"
+[ -f "$TMP/$NAME" ] || fail extract "binary missing from archive"
 
 # ── install ─────────────────────────────────────────────────────────────────
 mkdir -p "$BIN_DIR" 2>/dev/null || fail permission "cannot create $BIN_DIR"
-mv "$TMP/snailer" "$BIN_DIR/snailer" 2>/dev/null || fail permission "cannot write to $BIN_DIR"
-chmod +x "$BIN_DIR/snailer" || fail permission "cannot chmod binary"
+mv "$TMP/$NAME" "$BIN_DIR/closiro" 2>/dev/null || fail permission "cannot write to $BIN_DIR"
+chmod +x "$BIN_DIR/closiro" || fail permission "cannot chmod binary"
+# Keep the old command name working for existing scripts.
+ln -sf closiro "$BIN_DIR/snailer" 2>/dev/null || true
 
 # First run WITH the inherited env — this is where the CLI persists
 # SNAILER_WEB_REF / SNAILER_UTM_* / SNAILER_CAMPAIGN to disk and fires
 # install_completed. Never fatal: attribution loss must not break install.
-"$BIN_DIR/snailer" --version >/dev/null 2>&1 || true
+"$BIN_DIR/closiro" --version >/dev/null 2>&1 || true
 
-echo "Installed: $BIN_DIR/snailer ($TAG)"
+echo "Installed: $BIN_DIR/closiro ($TAG) · 'snailer' still works"
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
   *) echo "Add to PATH:  export PATH=\"$BIN_DIR:\$PATH\"" ;;
