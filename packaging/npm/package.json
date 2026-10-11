@@ -1,14 +1,33 @@
 {
-  "name": "@snailer-team/snailer",
-  "version": "0.1.0",
-  "description": "AI-powered development CLI (installer wrapper)",
-  "bin": { "snailer": "bin/snailer.js" },
-  "files": ["bin", "scripts", "README.md", "../EULA.md", "../LICENSE"],
-  "scripts": { "postinstall": "node scripts/postinstall.js" },
+  "name": "@closedsi/closiro",
+  "version": "2.37.0",
+  "description": "Closiro (formerly Snailer) AI coding agent CLI. Installs the native binary from GitHub Releases.",
+  "bin": {
+    "closiro": "bin/closiro.js",
+    "snailer": "bin/closiro.js"
+  },
+  "files": [
+    "bin/closiro.js",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "EULA.md"
+  ],
+  "scripts": {
+    "prepack": "node scripts/copy-legal.js",
+    "postinstall": "node scripts/postinstall.js"
+  },
   "os": ["darwin", "linux", "win32"],
   "cpu": ["x64", "arm64"],
   "engines": { "node": ">=16" },
-  "repository": "https://github.com/felixaihub/snailer-cli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/closedsi-engineering/closiro-agent.git",
+    "directory": "packaging/npm"
+  },
+  "homepage": "https://github.com/closedsi-engineering/closiro-agent#readme",
+  "bugs": "https://github.com/closedsi-engineering/closiro-agent/issues",
+  "keywords": ["closiro", "snailer", "ai", "coding-agent", "cli"],
   "license": "MIT",
   "publishConfig": { "access": "public" }
 }

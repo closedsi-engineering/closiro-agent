@@ -117,10 +117,10 @@ brew install snailer
 
 ```bash
 # Global installation
-npm install -g @felixaihub/snailer
+npm install -g @closedsi/closiro
 
 # Or use npx (no installation)
-npx @felixaihub/snailer@latest --help
+npx @closedsi/closiro@latest --help
 ```
 
 ---
