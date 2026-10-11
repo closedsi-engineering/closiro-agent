@@ -1,51 +1,85 @@
-const { execSync } = require('node:child_process');
+// Downloads the native binary for this platform from GitHub Releases,
+// verifies it against the release checksums, and unpacks it into bin/.
+const { execFileSync } = require('node:child_process');
+const crypto = require('node:crypto');
 const os = require('node:os');
 const fs = require('node:fs');
 const path = require('node:path');
 
-if (process.env.SNAILER_SKIP_POSTINSTALL === '1') {
-  console.log('[snailer] Skipping binary download (SNAILER_SKIP_POSTINSTALL=1).');
+const env = (name) => process.env[`CLOSIRO_${name}`] || process.env[`SNAILER_${name}`];
+
+if (env('SKIP_POSTINSTALL') === '1') {
+  console.log('[closiro] Skipping binary download (CLOSIRO_SKIP_POSTINSTALL=1).');
   process.exit(0);
 }
 
-const org = process.env.SNAILER_ORG || 'felixaihub';
-const repo = process.env.SNAILER_REPO || 'snailer-cli';
-const version = 'v' + (process.env.npm_package_version || '0.1.0');
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+const repoSlug = env('REPO') && env('REPO').includes('/')
+  ? env('REPO')
+  : `${env('ORG') || 'closedsi-engineering'}/${env('REPO') || 'closiro-agent'}`;
+const version = 'v' + (process.env.npm_package_version || pkg.version);
 
-// Map the current Node.js platform and CPU architecture to the
-// matching Rust target triple used in the released binary names.
-function triple() {
-  const plat = os.platform();
-  const arch = os.arch();
-  if (plat === 'darwin' && arch === 'arm64') return 'aarch64-apple-darwin';
-  if (plat === 'darwin') return 'x86_64-apple-darwin';
-  if (plat === 'linux' && arch === 'arm64') return 'aarch64-unknown-linux-musl';
-  if (plat === 'linux') return 'x86_64-unknown-linux-musl';
-  if (plat === 'win32') return 'x86_64-pc-windows-msvc';
-  throw new Error(`Unsupported platform ${plat}/${arch}`);
+// Rust target triples used in the released archive names.
+const TRIPLES = {
+  'darwin-arm64': 'aarch64-apple-darwin',
+  'darwin-x64': 'x86_64-apple-darwin',
+  'linux-x64': 'x86_64-unknown-linux-musl',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+};
+const key = `${os.platform()}-${os.arch()}`;
+const triple = TRIPLES[key];
+if (!triple) {
+  console.error(`[closiro] No prebuilt binary for ${key}.`);
+  console.error(`[closiro] Available: ${Object.keys(TRIPLES).join(', ')}`);
+  process.exit(1);
 }
 
-const plat = os.platform();
-const isWin = plat === 'win32';
-const asset = `snailer-${version}-${triple()}.${isWin ? 'zip' : 'tar.gz'}`;
-const url = `https://github.com/${org}/${repo}/releases/download/${version}/${asset}`;
+const isWin = os.platform() === 'win32';
+const asset = `snailer-${version}-${triple}.${isWin ? 'zip' : 'tar.gz'}`;
+const base = `https://github.com/${repoSlug}/releases/download/${version}`;
+const url = `${base}/${asset}`;
+const sumsUrl = `${base}/snailer-${version}-checksums.txt`;
 
 const binDir = path.join(__dirname, '..', 'bin');
-fs.mkdirSync(binDir, { recursive: true });
-const tmp = path.join(os.tmpdir(), asset);
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'closiro-'));
+const archive = path.join(tmpDir, asset);
+const sums = path.join(tmpDir, 'checksums.txt');
+
+function download(from, to) {
+  if (isWin) {
+    execFileSync('powershell', ['-NoProfile', '-Command',
+      `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -UseBasicParsing -Uri '${from}' -OutFile '${to}'`],
+      { stdio: 'inherit' });
+  } else {
+    execFileSync('curl', ['-fsSL', '--retry', '3', '-o', to, from], { stdio: 'inherit' });
+  }
+}
 
 try {
+  download(url, archive);
+  download(sumsUrl, sums);
+
+  const expected = fs.readFileSync(sums, 'utf8').split('\n')
+    .map((line) => line.trim().split(/\s+/))
+    .find(([, name]) => name && path.basename(name) === asset);
+  if (!expected) throw new Error(`${asset} is not listed in the release checksums`);
+  const actual = crypto.createHash('sha256').update(fs.readFileSync(archive)).digest('hex');
+  if (actual !== expected[0]) throw new Error(`checksum mismatch for ${asset}`);
+
+  fs.mkdirSync(binDir, { recursive: true });
   if (isWin) {
-    execSync(`powershell -NoProfile -Command \"Invoke-WebRequest -Uri '${url}' -OutFile '${tmp}'; Expand-Archive -LiteralPath '${tmp}' -DestinationPath '${binDir}' -Force\"`, { stdio: 'inherit' });
+    execFileSync('powershell', ['-NoProfile', '-Command',
+      `Expand-Archive -LiteralPath '${archive}' -DestinationPath '${binDir}' -Force`], { stdio: 'inherit' });
   } else {
-    execSync(`curl -L '${url}' -o '${tmp}'`, { stdio: 'inherit' });
-    execSync(`tar -xzf '${tmp}' -C '${binDir}'`, { stdio: 'inherit' });
-    execSync(`chmod +x '${path.join(binDir, 'snailer')}'`, { stdio: 'inherit' });
+    execFileSync('tar', ['-xzf', archive, '-C', binDir], { stdio: 'inherit' });
+    fs.chmodSync(path.join(binDir, 'snailer'), 0o755);
   }
-  console.log(`[snailer] Installed binary from ${url}`);
-  console.log('[snailer] By installing, you agree to the Snailer EULA: https://github.com/felixaihub/snailer-cli/blob/main/EULA.md');
+  console.log(`[closiro] Installed ${version} (${triple}). Run: closiro --help`);
+  console.log(`[closiro] By installing, you agree to the EULA: https://github.com/${repoSlug}/blob/main/EULA.md`);
 } catch (e) {
-  console.error('[snailer] Failed to download/install binary.');
-  console.error(`[snailer] Manual download: ${url}`);
+  console.error(`[closiro] Failed to install the binary: ${e.message}`);
+  console.error(`[closiro] Manual download: ${url}`);
   process.exit(1);
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 }
