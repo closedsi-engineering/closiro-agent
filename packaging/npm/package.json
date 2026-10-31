@@ -3,8 +3,7 @@
   "version": "2.37.0",
   "description": "Closiro (formerly Snailer) AI coding agent CLI. Installs the native binary from GitHub Releases.",
   "bin": {
-    "closiro": "bin/closiro.js",
-    "snailer": "bin/closiro.js"
+    "closiro": "bin/closiro.js"
   },
   "files": [
     "bin/closiro.js",

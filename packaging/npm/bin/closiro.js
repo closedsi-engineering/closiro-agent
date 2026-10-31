@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Runs the native binary that scripts/postinstall.js placed next to this file.
-// Both the `closiro` and `snailer` commands point here.
+// The `closiro` command points here.
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const os = require('node:os');

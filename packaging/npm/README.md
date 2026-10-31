@@ -20,10 +20,10 @@ Or run it without installing:
 npx @closedsi/closiro@latest --help
 ```
 
-Both `closiro` and `snailer` start the same CLI, so existing scripts keep working.
+The package installs the `closiro` command. It does not install a `snailer`
+command, so it never collides with an older Snailer install.
 
-> Moving from `@snailer-team/snailer`? Uninstall it first so the two packages
-> don't both provide the `snailer` command:
+> Moving from `@snailer-team/snailer`? Uninstall it and use `closiro` from now on:
 > `npm uninstall -g @snailer-team/snailer && npm install -g @closedsi/closiro`
 
 ## Setup
